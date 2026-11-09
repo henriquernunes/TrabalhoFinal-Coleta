@@ -101,6 +101,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--agora); out
       Nível e hora: <a href="https://telemetriaws1.ana.gov.br/ServiceANA.asmx" target="_blank" rel="noopener">ANA</a> (coleta 28/10/2026).
       Mancha, bairros e eventos: <a href="https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/Hosted" target="_blank" rel="noopener">Prefeitura / SMAMUS e DMAE</a> (coleta 09/11/2026).
       Pessoas e prédios afetados: INCT SiMAI (JSON fornecido pela disciplina; estimativas, não contagem oficial).
+      <span id="fonte-escolas"></span>
     </div>
   </section>
 </div>
@@ -180,8 +181,15 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-
 let hora = 0, cotaAtual = -1, pronto = false;
 function bairroTexto(nome) {
   const n = S[hora].n, l = n != null && D.inct[nome] && D.inct[nome][n.toFixed(1)];
-  if (!l) return `<b>${nome}</b><br>Sem estimativa abaixo de 3,00 m`;
-  return `<b>${nome}</b><br>${num(l[0])} pessoas (estimativa)<br>${l[1].toLocaleString("pt-BR", {maximumFractionDigits: 1})}% dos prédios`;
+  const cadastro = D.escolas?.bairros?.[nome];
+  const escolas = cadastro ? `<br><b>${cadastro.por_cota[String(cotaAtual)] || 0} de ${cadastro.total} escolas</b> na área simulada nesta cota` : "";
+  if (!l) return `<b>${nome}</b><br>Sem estimativa abaixo de 3,00 m${escolas}`;
+  return `<b>${nome}</b><br>${num(l[0])} pessoas (estimativa)<br>${l[1].toLocaleString("pt-BR", {maximumFractionDigits: 1})}% dos prédios${escolas}`;
+}
+if (D.escolas) {
+  const fonte = $("fonte-escolas"), link = document.createElement("a");
+  link.href = D.escolas.fonte; link.target = "_blank"; link.rel = "noopener"; link.textContent = "Prefeitura / cadastro INEP";
+  fonte.append(" Pontos de escolas na mancha simulada (não danos confirmados): ", link, ` (coleta ${D.escolas.coleta}).`);
 }
 function dataBR(t) { return `${t.slice(8,10)}/${t.slice(5,7)}, ${t.slice(11,13)}h`; }
 
@@ -207,6 +215,7 @@ function aplica(i) {
     map.getSource("agua").setData({ type: "FeatureCollection", features: cota ? [CONTORNOS[cota]] : [] });
     cotaAtual = cota;
   }
+  if (hoveredNome !== null) pop.setHTML(bairroTexto(hoveredNome));
   map.setFilter("eventos", ["<", ["get", "i"], passados.length]);
 }
 
@@ -242,15 +251,16 @@ $("bfoto").addEventListener("click", e => {
 
 const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
 let hovered = null;
+let hoveredNome = null;
 map.on("mousemove", "bairro-hover", e => {
   const f = e.features[0];
   if (hovered !== null) map.setFeatureState({ source: "bairros", id: hovered }, { h: false });
-  hovered = f.id; map.setFeatureState({ source: "bairros", id: hovered }, { h: true });
-  pop.setLngLat(e.lngLat).setHTML(bairroTexto(f.properties.nome)).addTo(map);
+  hovered = f.id; hoveredNome = f.properties.nome; map.setFeatureState({ source: "bairros", id: hovered }, { h: true });
+  pop.setLngLat(e.lngLat).setHTML(bairroTexto(hoveredNome)).addTo(map);
 });
 map.on("mouseleave", "bairro-hover", () => {
   if (hovered !== null) map.setFeatureState({ source: "bairros", id: hovered }, { h: false });
-  hovered = null; pop.remove();
+  hovered = null; hoveredNome = null; pop.remove();
 });
 map.on("click", "eventos", e => {
   const p = e.features[0].properties;
