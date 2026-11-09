@@ -36,13 +36,19 @@ Ou cada base separadamente:
 | `scripts/carrega_inct.py` | Simulação do INCT SiMAI | Leitura do JSON + diagnóstico | `dados/processados/inct_longo_bruto.csv` |
 
 Os scripts **não baixam de novo** o que já existe em `dados/originais/` (coleta responsável).
-Para gerar o mapa interativo, execute `python scripts/coleta_prefeitura.py` separadamente; essa coleta ainda não faz parte de `coletar_tudo.py`.
+Para gerar o mapa interativo, execute `python scripts/coleta_prefeitura.py` separadamente; essa coleta ainda não faz parte de `coletar_tudo.py`. Ela também baixa a camada pública de escolas georreferenciadas da Prefeitura, derivada do cadastro INEP.
+
+Depois de baixar as escolas, atualize os números por bairro e cota sem refazer os contornos grandes:
+
+```bash
+python scripts/gera_mapa.py --schools-only
+```
 
 ## Fontes usadas no mapa interativo
 
 O mapa usa a série horária processada da ANA para avançar a linha do tempo. A mancha em cada cota, os limites dos bairros e a cronologia dos eventos vêm das camadas públicas do GIS da Prefeitura. O JSON do INCT SiMAI, fornecido pela disciplina, entra nas estimativas de pessoas e prédios atingidos e nos valores mostrados por bairro. Ele não contém o desenho da mancha exibida no mapa. A foto aérea da Esri e os prédios vetoriais do OpenFreeMap são camadas visuais de fundo, não medições da enchente.
 
-As camadas da Prefeitura são polígonos por cota. Assim, a aparência da água no mapa não calcula a passagem entre cada prédio, nem modela o efeito de diques, comportas ou água retida durante a descida.
+As camadas da Prefeitura são polígonos por cota. Assim, a aparência da água no mapa não calcula a passagem entre cada prédio, nem modela o efeito de diques, comportas ou água retida durante a descida. O número de escolas no hover é contado ao cruzar os pontos da camada [Escolas_INEP_SCRPOA](https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/Hosted/Escolas_INEP_SCRPOA/FeatureServer/0) com os bairros oficiais e com a mancha exibida em cada cota. É uma estimativa de **escolas dentro da área simulada**, não uma lista de escolas que sofreram danos reais em 2024. A data da coleta fica em `dados/originais/prefeitura/escolas_meta.json` e no rodapé do mapa.
 
 ## O que já sabemos sobre os dados da ANA
 
