@@ -8,7 +8,7 @@
 \usepackage{xurl}
 
 \title{Relatório de Limpeza de Dados\\\large Análise de Dados de Enchentes do INCT SiMAI}
-\author{Henrique Nunes (\textit{completar com os demais integrantes})\\Coleta, Preparação e Análise de Dados --- PUCRS 2026/2}
+\author{Henrique Nunes, Henzo Vasconcellos, Jayme, Rodrigo Gagliardi\\Coleta, Preparação e Análise de Dados --- PUCRS 2026/2}
 \date{9 de novembro de 2026}
 
 \begin{document}
@@ -23,7 +23,7 @@ python scripts/coleta_ana.py
 python scripts/limpa_inct.py
 python scripts/processa_ana.py
 \end{verbatim}
-Cada alteração nos prédios afetados está registrada em \texttt{dados/processados/inct\_inconsistencias.csv}. Os valores originais continuam no arquivo limpo, nas colunas com sufixo \texttt{\_original}.
+Os valores originais continuam no arquivo limpo, nas colunas com sufixo \texttt{\_original}.
 
 \section{JSON do INCT}
 O arquivo tem 71 níveis (3,0 a 10,0~m) e 94 bairros, em formato longo de 6.674 linhas. Não encontramos níveis com número diferente de bairros, nomes duplicados ou com espaços sobrando, valores ausentes, \texttt{affected\_buildings} maior que \texttt{total\_buildings} ou \texttt{total\_buildings}/\texttt{population} variando entre níveis.
@@ -98,11 +98,5 @@ Lacunas maiores & Por exemplo, 85 dias até 14/10/2015 e 70 dias até 05/07/2016
 
 \section{Ligação entre as bases}
 Cada nível da ANA é arredondado ao décimo mais próximo, com meio para cima (5,35 vira 5,4~m), e consultado no INCT. O resultado é uma estimativa do que aquele nível representa na simulação, e não uma contagem de quem foi atingido em cada hora. Abaixo de 3,0~m não há simulação e o campo fica vazio.
-
-\section{Pendências}
-\begin{itemize}
-  \item Confirmar com o INCT se a simulação usa o referencial do Cais Mauá ou do Gasômetro.
-  \item Enviar ao INCT a devolutiva: quedas de prédios, arredondamento e os 6 níveis com estrutura diferente.
-\end{itemize}
 
 \end{document}
