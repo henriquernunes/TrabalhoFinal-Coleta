@@ -3,8 +3,7 @@ Roda todas as coletas em sequência. Cada script guarda os dados brutos em dados
 e não baixa de novo o que já existe, então pode ser executado várias vezes.
 
 Uso (a partir da raiz do repositório):
-  python scripts/coletar_tudo.py          # sem o .gpkg grande do Zenodo
-  python scripts/coletar_tudo.py --gpkg   # inclui a mancha de inundação (centenas de MB)
+  python scripts/coletar_tudo.py
 """
 import subprocess
 import sys
@@ -13,8 +12,7 @@ from pathlib import Path
 PASTA = Path(__file__).resolve().parent
 ETAPAS = [
     ("Níveis do Guaíba (ANA)", ["coleta_ana.py"]),
-    ("Bairros (ObservaPOA)", ["coleta_observapoa.py"]),
-    ("Cheias de 2024 (UFRGS/Zenodo)", ["coleta_zenodo.py"] + (["--gpkg"] if "--gpkg" in sys.argv else [])),
+    ("Mancha, bairros, eventos e escolas (Prefeitura)", ["coleta_prefeitura.py"]),
     ("Simulação do INCT", ["carrega_inct.py"]),
 ]
 
