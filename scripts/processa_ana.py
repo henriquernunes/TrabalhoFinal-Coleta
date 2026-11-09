@@ -5,8 +5,6 @@ Entradas: dados/originais/ana/<codigo>_15min.csv (gerados por coleta_ana.py)
           dados/processados/inct_longo_limpo.csv (gerado por limpa_inct.py)
 Saídas em dados/processados/:
   ana_diario.csv            uma linha por dia, com a estação usada e a cota de inundação dela
-  ana_dias_sensor_travado.csv dias descartados por sensor parado
-  ana_leituras_removidas.csv leituras descartadas como picos falsos do sensor
   enchente_2024_horario.csv nível de hora em hora (01 a 11/05/2024) + estimativas do INCT
 Uso: python scripts/processa_ana.py
 
@@ -57,7 +55,6 @@ def diario(u: pd.DataFrame) -> pd.DataFrame:
     # sensor travado: média diária quase constante por semanas (ex.: 268 cm e 98 cm em 2015-16)
     faixa = d.set_index("data")["nivel_medio_cm"].rolling("15D", center=True)
     travado = (faixa.max() - faixa.min() <= LIMIAR_TRAVADO_CM).to_numpy() & (faixa.count() >= 10).to_numpy()
-    d[travado].to_csv(PROC / "ana_dias_sensor_travado.csv", index=False)
     d = d[~travado].copy()
     d["cota_cm"] = d["estacao"].map(COTA_CM)
     d["acima_cota"] = d["nivel_max_cm"] >= d["cota_cm"]
@@ -86,8 +83,6 @@ def enchente_horaria(u: pd.DataFrame, inct: pd.DataFrame) -> pd.DataFrame:
 if __name__ == "__main__":
     cais, picos_c = separa_picos(ler("87450004"))
     gas, picos_g = separa_picos(ler("87444000"))
-    pd.concat([picos_c.to_frame().assign(estacao=CAIS), picos_g.to_frame().assign(estacao=GASOMETRO)]
-              ).to_csv(PROC / "ana_leituras_removidas.csv")
 
     unida = unir(cais, gas)
     dia = diario(unida)

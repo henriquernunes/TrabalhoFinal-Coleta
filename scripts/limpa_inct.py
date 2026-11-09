@@ -2,8 +2,7 @@
 Limpa a simulação do INCT SiMAI e grava o formato longo final.
 
 Entrada: dados/originais/inct/dados.json
-Saídas:  dados/processados/inct_longo_limpo.csv     (6674 linhas; uma por nível e bairro)
-         dados/processados/inct_inconsistencias.csv (cada valor alterado: bairro, nível, antes, depois, motivo)
+Saída:   dados/processados/inct_longo_limpo.csv (6674 linhas; uma por nível e bairro)
 Uso:     python scripts/limpa_inct.py
 
 Decisões (justificadas em relatorios/limpeza_dados.pdf):
@@ -21,7 +20,6 @@ from carrega_inct import carregar, ENTRADA
 
 RAIZ = Path(__file__).resolve().parents[1]
 SAIDA = RAIZ / "dados" / "processados" / "inct_longo_limpo.csv"
-LOG = RAIZ / "dados" / "processados" / "inct_inconsistencias.csv"
 
 
 def maior_seq_nao_decrescente(valores: list[int]) -> set[int]:
@@ -86,6 +84,5 @@ if __name__ == "__main__":
     limpo, log = limpar(carregar(ENTRADA))
     checar(limpo)
     limpo.to_csv(SAIDA, index=False)
-    log.to_csv(LOG, index=False)
     print(f"{len(limpo)} linhas em {SAIDA.name}; {len(log)} valores de prédios corrigidos em {log['bairro'].nunique()} bairros")
     print(log.groupby("bairro").size().to_string())
