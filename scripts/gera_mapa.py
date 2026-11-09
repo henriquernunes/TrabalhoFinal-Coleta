@@ -6,6 +6,7 @@ Entradas: dados/originais/prefeitura/*.geojson (coleta_prefeitura.py),
 Saídas:   dados/processados/mapa_dados.json e app/mapa.html
 Uso:      python scripts/gera_mapa.py
           python scripts/gera_mapa.py --html-only  # após mudar só o modelo HTML
+          python scripts/gera_mapa.py --schools-only  # atualiza escolas sem refazer contornos
 
 Cada cota guarda uma única mancha acumulada. O navegador envia apenas a cota selecionada
 ao MapLibre, para não tentar indexar todas as 25 geometrias de uma vez.
@@ -23,6 +24,7 @@ import pandas as pd
 from shapely import make_valid, set_precision
 from shapely.geometry import MultiPolygon, mapping, shape
 from shapely.ops import unary_union
+from shapely.prepared import prep
 
 RAIZ = Path(__file__).resolve().parents[1]
 ORIG = RAIZ / "dados" / "originais" / "prefeitura"
@@ -102,6 +104,49 @@ def bairros_inct() -> tuple[list[dict], dict]:
     return geos, tabela
 
 
+def escolas_por_bairro(escolas: list[dict], bairros: list[dict], contornos_mapa: list[dict],
+                       nomes_por_chave: dict[str, str]) -> tuple[dict, dict]:
+    """Conta pontos de escolas em cada bairro e na mancha mostrada em cada cota."""
+    bairros_geo = [(nomes_por_chave[chave(f["properties"]["nome"])], prep(make_valid(shape(f["geometry"]))))
+                   for f in bairros]
+    cotas_geo = [(f["properties"]["cota"], prep(shape(f["geometry"]))) for f in contornos_mapa]
+    resultado = {nome: {"total": 0, "por_cota": {str(c): 0 for c, _ in cotas_geo}}
+                 for nome in nomes_por_chave.values()}
+    vistos, sem_bairro, na_borda = set(), 0, 0
+    for f in escolas:
+        p = f["properties"]
+        ponto = shape(f["geometry"])
+        codigo = p.get("codigo")
+        identidade = ("inep", str(codigo)) if codigo not in (None, "", 0) else (
+            "ponto", (p.get("escola") or "").strip().upper(), tuple(ponto.coords[0][:2]))
+        if identidade in vistos:
+            continue
+        vistos.add(identidade)
+        encontrados = [nome for nome, poligono in bairros_geo if poligono.contains(ponto)]
+        if not encontrados:
+            encontrados = [nome for nome, poligono in bairros_geo if poligono.covers(ponto)]
+        if not encontrados:
+            sem_bairro += 1
+            continue
+        if len(encontrados) > 1:
+            na_borda += 1
+        nome = sorted(encontrados)[0]
+        resultado[nome]["total"] += 1
+        for cota, mancha in cotas_geo:
+            if mancha.covers(ponto):
+                resultado[nome]["por_cota"][str(cota)] += 1
+    return resultado, {"escolas_unicas": len(vistos), "sem_bairro": sem_bairro, "na_borda": na_borda}
+
+
+def escolas_mapa(bairros_mapa: list[dict], contornos_mapa: list[dict]) -> dict:
+    meta = json.loads((ORIG / "escolas_meta.json").read_text(encoding="utf-8"))
+    escolas = le("escolas")
+    nomes = {chave(f["properties"]["nome"]): f["properties"]["nome"] for f in bairros_mapa}
+    contagem, diagnostico = escolas_por_bairro(escolas, le("bairros"), contornos_mapa, nomes)
+    assert sum(b["total"] for b in contagem.values()) + diagnostico["sem_bairro"] == diagnostico["escolas_unicas"]
+    return {"fonte": meta["fonte"], "coleta": meta["coleta"], "bairros": contagem, **diagnostico}
+
+
 def grava_html(js: str) -> None:
     html = (RAIZ / "app" / "mapa_modelo.html").read_text(encoding="utf-8").replace("/*__DADOS__*/null", js)
     (RAIZ / "app" / "mapa.html").write_text(html, encoding="utf-8")
@@ -110,14 +155,25 @@ def grava_html(js: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--html-only", action="store_true", help="Atualiza o HTML com o mapa_dados.json existente")
+    parser.add_argument("--schools-only", action="store_true", help="Acrescenta escolas aos dados do mapa existente")
     args = parser.parse_args()
     if args.html_only:
         grava_html((PROC / "mapa_dados.json").read_text(encoding="utf-8"))
         raise SystemExit(0)
+    if args.schools_only:
+        dados = json.loads((PROC / "mapa_dados.json").read_text(encoding="utf-8"))
+        dados["escolas"] = escolas_mapa(dados["bairros"]["features"], dados["contornos"]["features"])
+        js = json.dumps(dados, ensure_ascii=False, separators=(",", ":"))
+        (PROC / "mapa_dados.json").write_text(js, encoding="utf-8")
+        grava_html(js)
+        print("Escolas:", dados["escolas"]["escolas_unicas"], "únicas; sem bairro:", dados["escolas"]["sem_bairro"])
+        raise SystemExit(0)
     geos, tabela = bairros_inct()
-    dados = {"contornos": {"type": "FeatureCollection", "features": contornos()},
+    contornos_mapa = contornos()
+    dados = {"contornos": {"type": "FeatureCollection", "features": contornos_mapa},
              "bairros": {"type": "FeatureCollection", "features": geos},
-             "inct": tabela, "eventos": eventos(), "serie": serie()}
+             "inct": tabela, "eventos": eventos(), "serie": serie(),
+             "escolas": escolas_mapa(geos, contornos_mapa)}
     assert [f["properties"]["cota"] for f in dados["contornos"]["features"]][-1] == 535
     assert max(s["cm"] for s in dados["serie"]) == 535
     js = json.dumps(dados, ensure_ascii=False, separators=(",", ":"))
