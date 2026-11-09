@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guaíba em maio de 2024</title>
+<link href="https://unpkg.com/maplibre-gl@6.17.0/dist/maplibre-gl.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rio: #17313a; --rio-2: #21434f; --texto: #eef2f0; --apagado: #a9bcbd;
+  --lodo: #8b653c; --lodo-claro: #c9a173; --regua: #f6f6f1; --marca: #1b1b1b; --agora: #f2c94c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--rio); color: var(--texto); font: 400 14px/1.4 Barlow, sans-serif; }
+#tela { position: relative; height: 100%; min-height: 0; overflow: hidden; }
+#map { position: absolute; inset: 0; z-index: 0; }
+#regua, #leitura, #botoes, #tempo { z-index: 1; }
+
+#regua { position: absolute; left: 16px; top: 16px; bottom: 166px; width: 62px; background: var(--regua); border-radius: 3px; overflow: hidden; box-shadow: 0 2px 10px rgb(0 0 0 / .4); }
+#regua svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+#agua-regua { position: absolute; left: 0; right: 0; bottom: 0; background: rgb(139 101 60 / .78); transition: height .12s linear; }
+
+#leitura { position: absolute; left: 94px; top: 16px; width: 300px; max-width: calc(100% - 110px); padding: 14px 18px 15px; background: rgb(23 49 58 / .92); border-radius: 3px; }
+h1 { margin: 0 0 8px; font: 500 15px/1.2 Barlow, sans-serif; color: var(--apagado); }
+#quando { font: 500 24px/1.1 "Barlow Condensed", sans-serif; }
+#nivel { font: 600 76px/.98 "Barlow Condensed", sans-serif; letter-spacing: -.01em; }
+#nivel small { font-size: 34px; margin-left: 3px; }
+#origem { color: var(--agora); font-size: 12px; min-height: 17px; }
+#pessoas { font: 600 32px/1.1 "Barlow Condensed", sans-serif; margin-top: 8px; }
+.nota { color: var(--apagado); font-size: 12.5px; line-height: 1.35; }
+#evento { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--rio-2); font-size: 13px; min-height: 66px; }
+#evento b { font-weight: 500; color: var(--agora); }
+
+#botoes { position: absolute; right: 54px; top: 16px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+button { font: 500 13px Barlow, sans-serif; color: var(--texto); background: rgb(23 49 58 / .92); border: 1px solid var(--rio-2); border-radius: 3px; padding: 7px 11px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--texto); color: var(--rio); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--agora); outline-offset: 2px; }
+
+#tempo { position: absolute; left: 0; right: 0; bottom: 0; min-height: 150px; padding: 10px 16px 6px; background: var(--rio); display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
+#tocar { height: 46px; align-self: start; font-size: 15px; background: var(--agora); color: var(--rio); border: 0; font-weight: 500; }
+#hidro { position: relative; height: 92px; }
+#hidro svg { width: 100%; height: 100%; display: block; }
+#hora { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+#hidro:has(#hora:focus-visible) { outline: 2px solid var(--agora); outline-offset: 2px; }
+#fonte { grid-column: 1 / -1; color: var(--apagado); font-size: 11.5px; line-height: 1.3; }
+#fonte a { color: inherit; }
+.maplibregl-popup-content { background: var(--rio); color: var(--texto); font: 13px/1.35 Barlow, sans-serif; border-radius: 3px; padding: 9px 11px; max-width: 250px; }
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button { color: var(--texto); }
+.maplibregl-ctrl-attrib { font-size: 10px; }
+.maplibregl-ctrl-bottom-right { bottom: 150px; }
+
+@media (max-width: 640px) {
+  #regua { width: 36px; left: 8px; top: 8px; bottom: 248px; }
+  #leitura { left: 52px; top: 8px; width: auto; right: 8px; max-width: none; padding: 10px 12px; }
+  #nivel { font-size: 52px; } #pessoas { font-size: 26px; }
+  #evento, h1 { display: none; }
+  #botoes { top: auto; right: 8px; bottom: 260px; max-width: calc(100% - 16px); }
+  #botoes button { font-size: 11.5px; padding: 6px 8px; }
+  .maplibregl-ctrl-top-right { display: none; }
+  #tempo { grid-template-columns: minmax(0, 1fr); min-height: 240px; height: auto; gap: 6px; padding: 8px 12px; }
+  #tocar { height: 36px; }
+  #hidro { height: 76px; }
+  #fonte { font-size: 10px; line-height: 1.25; }
+  .maplibregl-ctrl-bottom-right { bottom: 290px; }
+}
+</style>
+</head>
+<body>
+<div id="tela">
+  <div id="map" role="application" aria-label="Mapa de Porto Alegre com a área inundada em cada hora"></div>
+
+  <div id="regua" aria-hidden="true"><div id="agua-regua"></div><svg id="regua-svg"></svg></div>
+
+  <section id="leitura" aria-live="polite">
+    <h1>O Guaíba em maio de 2024</h1>
+    <div id="quando"></div>
+    <div id="nivel"></div>
+    <div id="origem"></div>
+    <div class="nota" id="cota-mapa"></div>
+    <div id="pessoas"></div>
+    <div class="nota" id="pessoas-nota"></div>
+    <div id="evento"></div>
+  </section>
+
+  <div id="botoes">
+    <button id="brealce" aria-pressed="false">Realçar água</button>
+    <button id="b3d" aria-pressed="false">Prédios em 3D</button>
+    <button id="bfoto" aria-pressed="false">Foto de 07/05 (estática)</button>
+  </div>
+
+  <section id="tempo">
+    <button id="tocar">Reproduzir</button>
+    <div id="hidro">
+      <svg id="hidro-svg" preserveAspectRatio="none"></svg>
+      <input id="hora" type="range" min="0" step="1" aria-label="Hora da enchente">
+    </div>
+    <div id="fonte">
+      A mancha é uma simulação por cota: a aparência da água não calcula o caminho entre prédios, nem considera diques, comportas ou água retida na descida.
+      Nível e hora: <a href="https://telemetriaws1.ana.gov.br/ServiceANA.asmx" target="_blank" rel="noopener">ANA</a> (coleta 28/10/2026).
+      Mancha, bairros e eventos: <a href="https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/Hosted" target="_blank" rel="noopener">Prefeitura / SMAMUS e DMAE</a> (coleta 09/11/2026).
+      Pessoas e prédios afetados: INCT SiMAI (JSON fornecido pela disciplina; estimativas, não contagem oficial).
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import * as maplibregl from "https://unpkg.com/maplibre-gl@6.17.0/dist/maplibre-gl.mjs";
+const D = /*__DADOS__*/null;
+const S = D.serie, $ = id => document.getElementById(id);
+const CONTORNOS = Object.fromEntries(D.contornos.features.map(f => [f.properties.cota, f]));
+const COTAS = Object.keys(CONTORNOS).map(Number).sort((a, b) => a - b);
+const REGUA = { min: 1.5, max: 5.75 };
+const num = n => n.toLocaleString("pt-BR");
+const metros = cm => (cm / 100).toFixed(2).replace(".", ",");
+
+// Régua limnimétrica: a marcação em "E" das réguas reais do rio
+(function regua() {
+  const svg = $("regua-svg"), H = svg.clientHeight, W = svg.clientWidth;
+  const y = m => H * (1 - (m - REGUA.min) / (REGUA.max - REGUA.min));
+  let s = "";
+  for (let cm = 150; cm <= 575; cm += 5) {
+    const m = cm / 100, dez = cm % 10 === 0;
+    if (dez && Math.round(cm / 10) % 2 === 0) s += `<rect x="${W*.5}" y="${y(m+.1)}" width="${W*.5}" height="${y(m)-y(m+.1)}" fill="#1b1b1b"/>`;
+    s += `<line x1="${W*.5}" x2="${W*(dez?.32:.42)}" y1="${y(m)}" y2="${y(m)}" stroke="#1b1b1b"/>`;
+    if (cm % 50 === 0) s += `<text x="${W*.27}" y="${y(m)+5}" text-anchor="middle" font-family="Barlow Condensed" font-weight="600" font-size="${W<50?12:16}" fill="#1b1b1b">${m}</text>`;
+  }
+  s += `<line x1="0" x2="${W}" y1="${y(3)}" y2="${y(3)}" stroke="#b3261e" stroke-width="2"/>`;
+  s += `<line x1="0" x2="${W}" y1="${y(5.35)}" y2="${y(5.35)}" stroke="#b3261e" stroke-width="2" stroke-dasharray="4 3"/>`;
+  svg.innerHTML = s;
+})();
+
+// Hidrograma: é a própria linha do tempo
+const hidro = { x: i => 1000 * i / (S.length - 1), y: cm => 86 - 80 * (cm - 200) / 350 };
+(function desenhaHidro() {
+  const svg = $("hidro-svg"); svg.setAttribute("viewBox", "0 0 1000 100");
+  const pts = S.map((p, i) => `${hidro.x(i).toFixed(1)},${hidro.y(p.cm).toFixed(1)}`);
+  let s = `<polygon points="0,88 ${pts.join(" ")} 1000,88" fill="#8b653c" opacity=".55"/>`;
+  s += `<polyline points="${pts.join(" ")}" fill="none" stroke="#c9a173" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+  S.forEach((p, i) => { if (!p.med) s += `<rect x="${hidro.x(i)}" y="0" width="${1000/S.length}" height="88" fill="#eef2f0" opacity=".12"/>`; });
+  s += `<line x1="0" x2="1000" y1="${hidro.y(300)}" y2="${hidro.y(300)}" stroke="#eef2f0" opacity=".35" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+  S.forEach((p, i) => { if (p.t.endsWith("T00:00") || p.t.endsWith("T00:00:00")) {
+    s += `<line x1="${hidro.x(i)}" x2="${hidro.x(i)}" y1="88" y2="93" stroke="#a9bcbd" vector-effect="non-scaling-stroke"/>`;
+    s += `<text x="${hidro.x(i)+4}" y="99" font-size="9" fill="#a9bcbd" textLength="28" lengthAdjust="spacingAndGlyphs">${p.t.slice(8,10)}/05</text>`;
+  }});
+  s += `<line id="cursor" y1="0" y2="88" stroke="#f2c94c" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+  svg.innerHTML = s;
+})();
+
+const map = new maplibregl.Map({
+  container: "map", center: [-51.195, -29.985], zoom: +(new URLSearchParams(location.search).get("z")) || 13.3, pitch: 0, bearing: 0, maxPitch: 70, minZoom: 9, antialias: true,
+  attributionControl: { compact: true, customAttribution: "Imagem: Esri World Imagery | Prédios: OpenFreeMap, OpenStreetMap | Manchas: Prefeitura de Porto Alegre" },
+  style: { version: 8, 
+    sources: {
+      esri: { type: "raster", tileSize: 256, maxzoom: 19, tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"] },
+      foto: { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, tiles: ["https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/inundacoes/POA_2024_inundacoes/MapServer/tile/{z}/{y}/{x}"] },
+      osm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
+      agua: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+      bairros: { type: "geojson", data: D.bairros, generateId: true },
+      eventos: { type: "geojson", data: { type: "FeatureCollection", features: D.eventos.map((e, i) =>
+        Number.isFinite(e.lon) && Number.isFinite(e.lat) ? { type: "Feature", id: i, properties: { i, nome: e.nome, txt: e.txt, t: e.t }, geometry: { type: "Point", coordinates: [e.lon, e.lat] } } : null).filter(Boolean) } },
+    },
+    layers: [
+      { id: "esri", type: "raster", source: "esri" },
+      { id: "foto", type: "raster", source: "foto", layout: { visibility: "none" } },
+      { id: "agua", type: "fill", source: "agua",
+        paint: { "fill-color": "#5f9fad", "fill-opacity": .48, "fill-antialias": false } },
+      { id: "predios", type: "fill-extrusion", source: "osm", "source-layer": "building", minzoom: 13, layout: { visibility: "none" }, paint: {
+          "fill-extrusion-color": "#d8d5cb", "fill-extrusion-opacity": .92,
+          "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0] } },
+      { id: "bairro-hover", type: "fill", source: "bairros", paint: { "fill-color": "#ffffff", "fill-opacity": ["case", ["boolean", ["feature-state", "h"], false], .12, 0] } },
+      { id: "bairro-linha", type: "line", source: "bairros", paint: { "line-color": "#ffffff", "line-opacity": .4, "line-width": 1 } },
+      { id: "eventos", type: "circle", source: "eventos", filter: ["<", ["get", "i"], 0], paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 3.5, 15, 8], "circle-color": "#f2c94c", "circle-stroke-color": "#17313a", "circle-stroke-width": 1.5 } },
+    ] },
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+
+let hora = 0, cotaAtual = -1, pronto = false;
+function bairroTexto(nome) {
+  const n = S[hora].n, l = n != null && D.inct[nome] && D.inct[nome][n.toFixed(1)];
+  if (!l) return `<b>${nome}</b><br>Sem estimativa abaixo de 3,00 m`;
+  return `<b>${nome}</b><br>${num(l[0])} pessoas (estimativa)<br>${l[1].toLocaleString("pt-BR", {maximumFractionDigits: 1})}% dos prédios`;
+}
+function dataBR(t) { return `${t.slice(8,10)}/${t.slice(5,7)}, ${t.slice(11,13)}h`; }
+
+function aplica(i) {
+  hora = i; const p = S[i];
+  $("hora").value = i;
+  $("cursor").setAttribute("x1", hidro.x(i)); $("cursor").setAttribute("x2", hidro.x(i));
+  $("agua-regua").style.height = (100 * (p.cm/100 - REGUA.min) / (REGUA.max - REGUA.min)) + "%";
+  $("quando").textContent = dataBR(p.t);
+  $("nivel").innerHTML = `${metros(p.cm)}<small>m</small>`;
+  $("origem").textContent = p.med ? "" : "Nível interpolado: sem leitura nesta hora";
+  const cota = COTAS.filter(c => c <= p.cm).pop() || 0;
+  $("cota-mapa").textContent = cota ? `Área azul: simulação até ${(cota / 100).toFixed(2).replace(".", ",")} m` : "Área azul: a partir de 3,00 m";
+  $("pessoas").textContent = p.p == null ? "Rio abaixo de 3,00 m" : `${num(p.p)} pessoas`;
+  $("pessoas-nota").textContent = p.p == null ? "A simulação do INCT começa em 3,00 m." : `em ${p.b} bairros, estimativa da simulação para este nível`;
+
+  const passados = D.eventos.filter(e => e.t <= p.t + "");
+  const ult = passados[passados.length - 1];
+  $("evento").innerHTML = ult ? `<b>${dataBR(ult.t).replace(/h$/, "") + "h" + ult.t.slice(14,16)}</b> ${ult.nome}<br>${ult.txt}` : "";
+
+  if (!pronto) return;
+  if (cota !== cotaAtual) {
+    map.getSource("agua").setData({ type: "FeatureCollection", features: cota ? [CONTORNOS[cota]] : [] });
+    cotaAtual = cota;
+  }
+  map.setFilter("eventos", ["<", ["get", "i"], passados.length]);
+}
+
+$("hora").max = S.length - 1;
+$("hora").addEventListener("input", e => { parar(); aplica(+e.target.value); });
+
+let timer = null;
+function parar() { clearInterval(timer); timer = null; $("tocar").textContent = "Reproduzir"; }
+$("tocar").addEventListener("click", () => {
+  if (timer) return parar();
+  if (hora >= S.length - 1) aplica(0);
+  $("tocar").textContent = "Pausar";
+  timer = setInterval(() => hora >= S.length - 1 ? parar() : aplica(hora + 1), 130);
+});
+
+$("b3d").addEventListener("click", e => {
+  const liga = e.target.getAttribute("aria-pressed") !== "true";
+  e.target.setAttribute("aria-pressed", liga);
+  map.setLayoutProperty("predios", "visibility", liga ? "visible" : "none");
+  map.easeTo({ pitch: liga ? 48 : 0, bearing: liga ? -18 : 0 });
+});
+$("brealce").addEventListener("click", e => {
+  const liga = e.target.getAttribute("aria-pressed") !== "true";
+  e.target.setAttribute("aria-pressed", liga);
+  map.setPaintProperty("agua", "fill-color", liga ? "#397f9a" : "#5f9fad");
+  map.setPaintProperty("agua", "fill-opacity", liga ? .72 : .48);
+});
+$("bfoto").addEventListener("click", e => {
+  const liga = e.target.getAttribute("aria-pressed") !== "true";
+  e.target.setAttribute("aria-pressed", liga);
+  map.setLayoutProperty("foto", "visibility", liga ? "visible" : "none");
+});
+
+const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+let hovered = null;
+map.on("mousemove", "bairro-hover", e => {
+  const f = e.features[0];
+  if (hovered !== null) map.setFeatureState({ source: "bairros", id: hovered }, { h: false });
+  hovered = f.id; map.setFeatureState({ source: "bairros", id: hovered }, { h: true });
+  pop.setLngLat(e.lngLat).setHTML(bairroTexto(f.properties.nome)).addTo(map);
+});
+map.on("mouseleave", "bairro-hover", () => {
+  if (hovered !== null) map.setFeatureState({ source: "bairros", id: hovered }, { h: false });
+  hovered = null; pop.remove();
+});
+map.on("click", "eventos", e => {
+  const p = e.features[0].properties;
+  new maplibregl.Popup({ offset: 8 }).setLngLat(e.lngLat).setHTML(`<b>${p.nome}</b><br>${dataBR(p.t)}${p.t.slice(14,16)}<br>${p.txt}`).addTo(map);
+});
+map.on("mouseenter", "eventos", () => map.getCanvas().style.cursor = "pointer");
+map.on("mouseleave", "eventos", () => map.getCanvas().style.cursor = "");
+
+map.once("idle", () => { document.body.dataset.idle = Math.round(performance.now()); });
+const inicial = +(new URLSearchParams(location.search).get("h")) || 0;
+aplica(inicial);
+function ativaMapa() { if (pronto) return; pronto = true; aplica(hora); document.body.dataset.pronto = "1"; }
+map.on("style.load", ativaMapa);
+map.on("load", ativaMapa);
+if (map.isStyleLoaded()) ativaMapa();
+new ResizeObserver(() => map.resize()).observe($("map"));
+map.on("error", e => console.error("MAPA", e.error && e.error.message));
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+__pycache__/
+.venv/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+# arquivos grandes, baixados pelos scripts
+dados/originais/zenodo/*.gpkg
+dados/originais/ana/*.xml
+# baixados e gerados por scripts (grandes)
+dados/originais/prefeitura/
+dados/processados/mapa_dados.json

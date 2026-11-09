@@ -1,0 +1,10 @@
+pandas>=2.0
+requests
+beautifulsoup4
+plotly
+streamlit>=1.67
+matplotlib
+nbformat
+nbconvert
+ipykernel
+shapely
