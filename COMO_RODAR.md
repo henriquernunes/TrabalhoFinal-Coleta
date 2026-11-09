@@ -2,6 +2,17 @@
 
 Scripts de coleta das bases escolhidas na Fase 1. Rodar sempre **a partir da raiz do repositório**.
 
+## Dashboard em duas telas
+
+```bash
+.venv/bin/streamlit run app/app.py
+```
+
+- **Simulação INCT:** abra `?tela=inct`. O controle de 3,0 a 10,0 m atualiza pessoas, prédios, bairros, gráfico por bairro, ranking e curva da população. Essa tela usa apenas `dados/processados/inct_longo_limpo.csv`, derivado do JSON do INCT.
+- **Enchente de 2024:** a página inicial mantém o mapa existente. O link **Histórico** abre o painel analítico da mesma tela, com três gráficos da ANA e filtro de anos. As estimativas de pessoas nesses gráficos vêm do INCT e são hipotéticas.
+
+Testes de regressão: `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` e `node --test`.
+
 ## 1. Preparar o ambiente
 
 ```bash
@@ -21,8 +32,7 @@ dados/originais/inct/dados.json
 ## 3. Coletar tudo
 
 ```bash
-python scripts/coletar_tudo.py            # rápido, sem o arquivo grande da mancha
-python scripts/coletar_tudo.py --gpkg     # inclui a mancha de inundação de 2024 (centenas de MB)
+python scripts/coletar_tudo.py
 ```
 
 Ou cada base separadamente:
@@ -31,12 +41,10 @@ Ou cada base separadamente:
 |---|---|---|---|
 | `scripts/coleta_ana.py` | Nível do Guaíba — ANA (Cais Mauá 87450004 e Usina do Gasômetro 87444000) | API (web service público, XML) | `dados/originais/ana/` |
 | `scripts/coleta_prefeitura.py` | Mancha por cota, limites dos bairros e eventos — GIS da Prefeitura de Porto Alegre (SMAMUS/DMAE) | ArcGIS FeatureServer público | `dados/originais/prefeitura/` |
-| `scripts/coleta_observapoa.py` | Limites e população dos bairros — ObservaPOA | Web scraping da página de mapas | `dados/originais/observapoa/` |
-| `scripts/coleta_zenodo.py` | Cheias de maio/2024 — UFRGS (Zenodo) | API REST do Zenodo | `dados/originais/zenodo/` |
 | `scripts/carrega_inct.py` | Simulação do INCT SiMAI | Leitura do JSON + diagnóstico | `dados/processados/inct_longo_bruto.csv` |
 
 Os scripts **não baixam de novo** o que já existe em `dados/originais/` (coleta responsável).
-Para gerar o mapa interativo, execute `python scripts/coleta_prefeitura.py` separadamente; essa coleta ainda não faz parte de `coletar_tudo.py`. Ela também baixa a camada pública de escolas georreferenciadas da Prefeitura, derivada do cadastro INEP.
+A coleta da Prefeitura também baixa a camada pública de escolas georreferenciadas da Prefeitura, derivada do cadastro INEP.
 
 Depois de baixar as escolas, atualize os números por bairro e cota sem refazer os contornos grandes:
 
@@ -57,7 +65,3 @@ As camadas da Prefeitura são polígonos por cota. Assim, a aparência da água 
 - A estação **Usina do Gasômetro (87444000)** começa em **03/05/2024 às 15h** e registra o pico de **5,35 m em 05/05/2024 às 5h30**.
 - Entre as duas há um **buraco de ~16 h**, e os **referenciais são diferentes** (nota ANA/SGB: correção de 1,18 m, ainda **não aplicada** nos dados servidos). Cota de inundação: 3,00 m no Cais Mauá, 3,60 m no Gasômetro.
 - Esses pontos vão para o relatório de limpeza (Fase 2).
-
-## Arquivos grandes
-
-O `.gpkg` do Zenodo não deve ir para o GitHub (limite de 100 MB). Ele está no `.gitignore`; quem clonar o repositório baixa rodando o script.
