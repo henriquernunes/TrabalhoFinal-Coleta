@@ -85,8 +85,8 @@ def tela_inct() -> None:
 
 
 def tela_historico() -> None:
-    st.title("Enchente de 2024 · análise histórica")
-    st.caption("Complemento da tela do mapa: o que as leituras da ANA mostram sobre os níveis do Guaíba?")
+    st.title("Histórico do Guaíba")
+    st.caption("Com que frequência o Guaíba chega a níveis de inundação, e o que cada cheia representaria segundo a simulação do INCT?")
     st.markdown("[← Voltar ao mapa](?tela=enchente)")
     inct = carregar_inct()
     anuais = resumo_anual(carregar_ana(), inct)
