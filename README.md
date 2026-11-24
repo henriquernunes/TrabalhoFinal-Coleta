@@ -17,7 +17,7 @@ Os números de pessoas e prédios são **estimativas de simulação**, não prev
 
 ## Dashboard
 
-Link público: ainda não publicado (entrega final em 24/11).
+Link público: <https://guaiba-poa.streamlit.app/>
 
 ## Bases de dados
 
@@ -72,7 +72,10 @@ Mais detalhes sobre cada script e sobre as fontes do mapa estão em [`COMO_RODAR
 
 ## Relatórios
 
-- `relatorios/fase2_coleta.pdf` — limpeza dos dados (fonte LaTeX em `relatorios/limpeza_dados.tex`).
+- `relatorios/base_dados.pdf` — levantamento das bases (Fase 1).
+- `relatorios/limpeza_dados.pdf` — limpeza dos dados (fonte LaTeX em `relatorios/limpeza_dados.tex`).
+- `relatorios/wireframe.png` — esboço das duas telas (Fase 2).
+- `relatorios/dashboard.pdf` — objetivo de cada tela, visualizações, como usar e limitações (fonte LaTeX em `relatorios/dashboard.tex`).
 
 ## Uso de IA
 
@@ -81,3 +84,4 @@ Mais detalhes sobre cada script e sobre as fontes do mapa estão em [`COMO_RODAR
 | Claude Code (Anthropic) | Scripts de coleta e limpeza | Apoio para escrever e testar os scripts e para investigar as inconsistências do JSON do INCT e da série da ANA. As decisões de tratamento foram revisadas pela equipe. |
 | Claude Code (Anthropic) | Mapa e dashboard | Apoio para escrever o código do mapa (MapLibre) e das telas em Streamlit, e os testes. |
 | Claude Code (Anthropic) | Relatório de limpeza | Rascunho do texto em LaTeX, revisado e editado pela equipe no Overleaf. |
+| Claude Code (Anthropic) | Relatório do dashboard (Fase 3 e versão final) | Rascunho do texto em LaTeX a partir do código das telas, revisado e editado pela equipe no Overleaf. |
