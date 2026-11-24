@@ -2,10 +2,11 @@
 
 Trabalho final da disciplina **Coleta, Preparação e Análise de Dados** (PUCRS, 2026/2), com a Profª Katherine Bianchini Esper de Vargas.
 
-O objetivo é um dashboard com duas telas:
+O objetivo é um dashboard com três telas:
 
 1. **Simulação INCT:** usa apenas o JSON do INCT, já limpo. Mostra o que a simulação estima para cada nível do Guaíba, de 3,0 a 10,0 m.
-2. **Enchente de 2024:** mapa navegável da cheia de maio de 2024 e histórico do nível do Guaíba, ligando as bases externas à simulação.
+2. **Enchente de 2024:** mapa navegável da cheia de maio de 2024, ligando as bases externas (ANA e Prefeitura) à simulação.
+3. **Histórico:** série do nível do Guaíba medida pela ANA desde 2014, com dias acima da cota, picos anuais e a estimativa do INCT para cada pico.
 
 Os números de pessoas e prédios são **estimativas de simulação**, não previsões nem contagens oficiais.
 
@@ -74,7 +75,7 @@ Mais detalhes sobre cada script e sobre as fontes do mapa estão em [`COMO_RODAR
 
 - `relatorios/base_dados.pdf` — levantamento das bases (Fase 1).
 - `relatorios/limpeza_dados.pdf` — limpeza dos dados (fonte LaTeX em `relatorios/limpeza_dados.tex`).
-- `relatorios/wireframe.png` — esboço das duas telas (Fase 2).
+- `relatorios/wireframe.png` — esboço das três telas (Fase 2).
 - `relatorios/dashboard.pdf` — objetivo de cada tela, visualizações, como usar e limitações (fonte LaTeX em `relatorios/dashboard.tex`).
 
 ## Uso de IA
