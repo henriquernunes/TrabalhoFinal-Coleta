@@ -1,5 +1,6 @@
 """Os scripts, rodados sobre os dados brutos versionados, reproduzem os CSVs processados do repositório."""
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "scripts"))
 import processa_ana  # noqa: E402
 from carrega_inct import carregar  # noqa: E402
+from extrai_bairros import MAPA, extrair  # noqa: E402
 from limpa_inct import checar, limpar  # noqa: E402
 
 PROC = RAIZ / "dados" / "processados"
@@ -51,6 +53,10 @@ class ReproducaoTest(unittest.TestCase):
         self.assertTrue(h["nivel_cm"].notna().all())
         esperado = pd.read_csv(PROC / "enchente_2024_horario.csv", parse_dates=["data_hora"])
         assert_frame_equal(h, esperado, check_dtype=False)
+
+    def test_bairros_geojson_bate_com_o_mapa(self):
+        gravado = json.loads((PROC / "bairros.geojson").read_text(encoding="utf-8"))
+        self.assertEqual(extrair(MAPA.read_text(encoding="utf-8")), gravado)
 
 
 if __name__ == "__main__":

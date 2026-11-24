@@ -3,10 +3,11 @@
 import plotly.graph_objects as go
 import streamlit as st
 
-from dados_dashboard import (carregar_ana, carregar_inct, curva_inct, nivel_inicial, resumo_anual,
-                             resumo_inct, serie_bairro)
+from dados_dashboard import (carregar_ana, carregar_bairros, carregar_inct, curva_inct, nivel_inicial,
+                             resumo_anual, resumo_inct, serie_bairro)
 
 
+PREFEITURA = "https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/Hosted/BAIRROS/FeatureServer/0"
 RIO = "#17313a"
 AZUL = "#5f9fad"
 AMARELO = "#f2c94c"
@@ -21,6 +22,26 @@ def estilo_grafico(fig: go.Figure, titulo: str, altura: int = 430) -> go.Figure:
     )
     fig.update_xaxes(gridcolor="#34525b", zeroline=False)
     fig.update_yaxes(gridcolor="#34525b", zeroline=False)
+    return fig
+
+
+def mapa_bairros(dados, nivel: float) -> go.Figure:
+    """Os 94 bairros coloridos pela % de prédios afetados no nível escolhido."""
+    nivel_atual = dados[dados["nivel_m"].eq(nivel)]
+    fig = go.Figure(go.Choropleth(
+        geojson=carregar_bairros(), featureidkey="properties.nome",
+        locations=nivel_atual["bairro"], z=nivel_atual["percentage"], zmin=0, zmax=100,
+        colorscale=[[0, "#3b4a4f"], [0.0001, "#2f6f7d"], [0.5, "#7fbccb"], [1, "#e6f5f8"]],
+        marker={"line": {"width": 0.6, "color": RIO}},
+        colorbar={"title": {"text": "% prédios"}, "ticksuffix": "%", "thickness": 12},
+        customdata=nivel_atual[["affected_buildings", "total_buildings", "affected_population"]],
+        hovertemplate=("<b>%{location}</b><br>%{z:.2f}% dos prédios "
+                       "(%{customdata[0]:,.0f} de %{customdata[1]:,.0f})<br>"
+                       "%{customdata[2]:,.0f} pessoas estimadas<extra></extra>"),
+    ))
+    estilo_grafico(fig, f"Prédios afetados por bairro a {nivel:.1f} m", 600)
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor=RIO)
+    fig.update_layout(margin={"l": 0, "r": 0, "t": 56, "b": 0}, dragmode=False)
     return fig
 
 
@@ -39,20 +60,12 @@ def tela_inct() -> None:
                                      (totais["pessoas"], totais["predios"], totais["bairros"])):
         coluna.metric(rotulo, f"{valor:,}".replace(",", "."))
 
-    esquerda, direita = st.columns([1.8, 1], gap="large")
+    esquerda, direita = st.columns([1.4, 1], gap="large")
     with esquerda:
-        ordenados = bairros.sort_values("percentage")
-        fig = go.Figure(go.Bar(
-            x=ordenados["percentage"], y=ordenados["bairro"], orientation="h",
-            marker_color=AZUL, customdata=ordenados[["affected_buildings", "total_buildings"]],
-            hovertemplate="%{y}: %{x:.2f}% dos prédios<br>%{customdata[0]:,.0f} de %{customdata[1]:,.0f} prédios<extra></extra>",
-        ))
-        estilo_grafico(fig, f"Prédios afetados por bairro a {nivel:.1f} m", max(450, len(ordenados) * 27 + 100))
-        fig.update_xaxes(title="Prédios afetados (%)", range=[0, 100])
-        fig.update_yaxes(title=None, automargin=True)
-        with st.container(height=570, border=False):
-            st.plotly_chart(fig, width="stretch", key="bairros_inct")
-        st.caption(f"Todos os {len(ordenados)} bairros com pelo menos um prédio atingido estão no gráfico; role para ver a lista completa.")
+        st.plotly_chart(mapa_bairros(dados, nivel), width="stretch", key="mapa_inct")
+        st.caption("Bairros em cinza: nenhum prédio atingido nesse nível. Cores: % de prédios afetados "
+                   f"segundo o INCT. Limites: [GIS da Prefeitura de Porto Alegre (SMAMUS)]({PREFEITURA}) "
+                   "(coleta: 09/11/2026).")
 
     with direita:
         criterio = st.radio("Ranking por", ["Pessoas", "Prédios"], horizontal=True)
@@ -63,6 +76,19 @@ def tela_inct() -> None:
         st.subheader("Bairros mais afetados")
         st.dataframe(tabela, hide_index=True, width="stretch",
                      column_config={"% dos prédios": st.column_config.NumberColumn(format="%.2f%%")})
+
+    ordenados = bairros.sort_values("percentage")
+    fig = go.Figure(go.Bar(
+        x=ordenados["percentage"], y=ordenados["bairro"], orientation="h",
+        marker_color=AZUL, customdata=ordenados[["affected_buildings", "total_buildings"]],
+        hovertemplate="%{y}: %{x:.2f}% dos prédios<br>%{customdata[0]:,.0f} de %{customdata[1]:,.0f} prédios<extra></extra>",
+    ))
+    estilo_grafico(fig, f"Prédios afetados por bairro a {nivel:.1f} m", max(450, len(ordenados) * 27 + 100))
+    fig.update_xaxes(title="Prédios afetados (%)", range=[0, 100])
+    fig.update_yaxes(title=None, automargin=True)
+    with st.container(height=570, border=False):
+        st.plotly_chart(fig, width="stretch", key="bairros_inct")
+    st.caption(f"Todos os {len(ordenados)} bairros com pelo menos um prédio atingido estão no gráfico; role para ver a lista completa.")
 
     curva = curva_inct(dados)
     fig_curva = go.Figure(go.Scatter(

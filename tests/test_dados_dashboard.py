@@ -11,7 +11,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 import dados_dashboard  # noqa: E402
-from dados_dashboard import (carregar_inct, curva_inct, nivel_inicial, resumo_anual, resumo_inct,  # noqa: E402
+from dados_dashboard import (carregar_bairros, carregar_inct, curva_inct, nivel_inicial, resumo_anual, resumo_inct,  # noqa: E402
                              serie_bairro)
 
 
@@ -64,6 +64,13 @@ class ResumoInctTest(unittest.TestCase):
         curva = curva_inct(self.dados)
         self.assertEqual(len(curva), 71)
         self.assertTrue(curva["nivel_m"].is_monotonic_increasing)
+
+
+class BairrosTest(unittest.TestCase):
+    def test_limites_tem_os_mesmos_94_nomes_do_inct(self):
+        nomes = [f["properties"]["nome"] for f in carregar_bairros()["features"]]
+        self.assertEqual(len(nomes), 94)
+        self.assertEqual(set(nomes), set(carregar_inct()["bairro"]))
 
 
 class ResumoAnualTest(unittest.TestCase):

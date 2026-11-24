@@ -1,5 +1,6 @@
 """Leituras já limpas usadas pelas duas telas do dashboard."""
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -35,6 +36,14 @@ def resumo_inct(dados: pd.DataFrame, nivel: float) -> tuple[pd.DataFrame, dict[s
 def curva_inct(dados: pd.DataFrame) -> pd.DataFrame:
     return (dados.groupby("nivel_m", as_index=False)["affected_population"]
             .sum().sort_values("nivel_m"))
+
+
+def carregar_bairros() -> dict:
+    """Limites dos 94 bairros (scripts/extrai_bairros.py), com nomes na grafia do INCT."""
+    bairros = json.loads((PROCESSADOS / "bairros.geojson").read_text(encoding="utf-8"))
+    if len({f["properties"]["nome"] for f in bairros["features"]}) != 94:
+        raise ValueError("O arquivo de bairros não contém os 94 bairros esperados.")
+    return bairros
 
 
 def serie_bairro(dados: pd.DataFrame, bairro: str) -> pd.DataFrame:

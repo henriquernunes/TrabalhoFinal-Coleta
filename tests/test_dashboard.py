@@ -35,8 +35,8 @@ class DashboardTest(unittest.TestCase):
         app.run()
         self.assertFalse(app.exception)
         self.assertEqual([x.value for x in app.metric], ["139.179", "55.170", "36"])
-        self.assertEqual(len(app.get("plotly_chart")), 3)
-        barras = json.loads(app.get("plotly_chart")[0].proto.spec)["data"][0]
+        self.assertEqual(len(app.get("plotly_chart")), 4)
+        barras = json.loads(app.get("plotly_chart")[1].proto.spec)["data"][0]
         self.assertEqual(len(barras["y"]), 36)
 
         app.slider[0].set_value(3.0).run()
@@ -90,7 +90,7 @@ class DashboardTest(unittest.TestCase):
         seletor = app.selectbox(key="bairro_inct")
         self.assertEqual(seletor.value, "Sarandi")
         self.assertEqual(len(seletor.options), 94)
-        curva = json.loads(app.get("plotly_chart")[2].proto.spec)
+        curva = json.loads(app.get("plotly_chart")[3].proto.spec)
         self.assertEqual(len(valores(curva["data"][0]["x"])), 71)
         self.assertEqual(max(valores(curva["data"][0]["y"])), 78.39)
         self.assertIn("Sarandi", curva["layout"]["title"]["text"])
@@ -110,6 +110,19 @@ class DashboardTest(unittest.TestCase):
         texto = " ".join(m.value for m in app.markdown)
         self.assertIn("a **3,3 m**", texto)
         self.assertIn("A 3,0 m: **0 pessoas**", texto)
+
+    def test_mapa_colore_os_94_bairros_pelo_nivel(self):
+        app = AppTest.from_file(str(APP), default_timeout=TEMPO_LIMITE)
+        app.query_params["tela"] = "inct"
+        app.run()
+        mapa = json.loads(app.get("plotly_chart")[0].proto.spec)["data"][0]
+        self.assertEqual(mapa["type"], "choropleth")
+        self.assertEqual(len(mapa["locations"]), 94)
+        self.assertEqual(sum(v > 0 for v in valores(mapa["z"])), 36)
+
+        app.slider[0].set_value(3.0).run()
+        mapa = json.loads(app.get("plotly_chart")[0].proto.spec)["data"][0]
+        self.assertEqual(sum(v > 0 for v in valores(mapa["z"])), 24)
 
     def test_tela_inct_ignora_painel_historico(self):
         app = AppTest.from_file(str(APP), default_timeout=TEMPO_LIMITE)
