@@ -1,16 +1,25 @@
 """Regressões dos fluxos visíveis das duas telas analíticas."""
 
+import base64
 import json
 import sys
 import unittest
 from pathlib import Path
 
+import numpy as np
 from streamlit.testing.v1 import AppTest
 
 TEMPO_LIMITE = 30
 APP = Path(__file__).resolve().parents[1] / "app" / "app.py"
 sys.path.insert(0, str(APP.parent))
 from dados_dashboard import carregar_ana, carregar_inct, resumo_anual  # noqa: E402
+
+
+def valores(serie):
+    """Séries numéricas do Plotly chegam codificadas em binário ({'dtype', 'bdata'})."""
+    if isinstance(serie, dict):
+        return np.frombuffer(base64.b64decode(serie["bdata"]), dtype=serie["dtype"]).tolist()
+    return serie
 
 
 class DashboardTest(unittest.TestCase):
@@ -26,7 +35,7 @@ class DashboardTest(unittest.TestCase):
         app.run()
         self.assertFalse(app.exception)
         self.assertEqual([x.value for x in app.metric], ["139.179", "55.170", "36"])
-        self.assertEqual(len(app.get("plotly_chart")), 2)
+        self.assertEqual(len(app.get("plotly_chart")), 3)
         barras = json.loads(app.get("plotly_chart")[0].proto.spec)["data"][0]
         self.assertEqual(len(barras["y"]), 36)
 
@@ -73,6 +82,34 @@ class DashboardTest(unittest.TestCase):
         tabela = app.dataframe[0].value
         self.assertTrue(tabela["Prédios"].is_monotonic_decreasing)
         self.assertEqual(len(tabela), 10)
+
+    def test_seletor_de_bairro_mostra_a_curva_e_acompanha_o_nivel(self):
+        app = AppTest.from_file(str(APP), default_timeout=TEMPO_LIMITE)
+        app.query_params["tela"] = "inct"
+        app.run()
+        seletor = app.selectbox(key="bairro_inct")
+        self.assertEqual(seletor.value, "Sarandi")
+        self.assertEqual(len(seletor.options), 94)
+        curva = json.loads(app.get("plotly_chart")[2].proto.spec)
+        self.assertEqual(len(valores(curva["data"][0]["x"])), 71)
+        self.assertEqual(max(valores(curva["data"][0]["y"])), 78.39)
+        self.assertIn("Sarandi", curva["layout"]["title"]["text"])
+        texto = " ".join(m.value for m in app.markdown)
+        self.assertIn("começa a ter prédios atingidos a **3,0 m**", texto)
+        self.assertIn("**24.391 pessoas**", texto)
+        self.assertIn("**47,32%**", texto)
+
+        seletor.set_value("Bom Fim").run()
+        self.assertFalse(app.exception)
+        self.assertIn("não tem prédios atingidos", " ".join(m.value for m in app.markdown))
+
+        app.selectbox(key="bairro_inct").set_value("Menino Deus").run()
+        app.slider[0].set_value(3.0).run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.selectbox(key="bairro_inct").value, "Menino Deus")
+        texto = " ".join(m.value for m in app.markdown)
+        self.assertIn("a **3,3 m**", texto)
+        self.assertIn("A 3,0 m: **0 pessoas**", texto)
 
     def test_tela_inct_ignora_painel_historico(self):
         app = AppTest.from_file(str(APP), default_timeout=TEMPO_LIMITE)

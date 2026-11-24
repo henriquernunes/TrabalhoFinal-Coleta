@@ -11,7 +11,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 import dados_dashboard  # noqa: E402
-from dados_dashboard import carregar_inct, curva_inct, resumo_anual, resumo_inct  # noqa: E402
+from dados_dashboard import (carregar_inct, curva_inct, nivel_inicial, resumo_anual, resumo_inct,  # noqa: E402
+                             serie_bairro)
 
 
 class CarregarInctTest(unittest.TestCase):
@@ -47,6 +48,17 @@ class ResumoInctTest(unittest.TestCase):
     def test_nivel_fora_da_simulacao_gera_erro(self):
         with self.assertRaises(ValueError):
             resumo_inct(self.dados, 2.9)
+
+    def test_serie_do_bairro_e_nivel_em_que_comeca_a_alagar(self):
+        serie = serie_bairro(self.dados, "Menino Deus")
+        self.assertEqual(len(serie), 71)
+        self.assertTrue(serie["nivel_m"].is_monotonic_increasing)
+        self.assertEqual(nivel_inicial(serie), 3.3)
+        self.assertIsNone(nivel_inicial(serie_bairro(self.dados, "Bom Fim")))
+
+    def test_bairro_inexistente_gera_erro(self):
+        with self.assertRaises(ValueError):
+            serie_bairro(self.dados, "Atlântida")
 
     def test_curva_tem_um_ponto_por_nivel_em_ordem(self):
         curva = curva_inct(self.dados)

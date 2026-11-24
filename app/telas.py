@@ -3,7 +3,8 @@
 import plotly.graph_objects as go
 import streamlit as st
 
-from dados_dashboard import carregar_ana, carregar_inct, curva_inct, resumo_anual, resumo_inct
+from dados_dashboard import (carregar_ana, carregar_inct, curva_inct, nivel_inicial, resumo_anual,
+                             resumo_inct, serie_bairro)
 
 
 RIO = "#17313a"
@@ -75,13 +76,62 @@ def tela_inct() -> None:
     estilo_grafico(fig_curva, "População afetada estimada por nível")
     fig_curva.update_xaxes(title="Nível do Guaíba (m)", range=[3, 10])
     fig_curva.update_yaxes(title="Pessoas estimadas")
-    st.plotly_chart(fig_curva, width="stretch", key="curva_inct")
+
+    cidade, um_bairro = st.columns(2, gap="large")
+    with cidade:
+        st.subheader("Cidade toda")
+        st.plotly_chart(fig_curva, width="stretch", key="curva_inct")
+    with um_bairro:
+        st.subheader("Um bairro")
+        tela_bairro(dados, nivel)
 
     st.info("Estimativas da simulação do INCT SiMAI, não previsões nem contagens da enchente real. "
             "A população afetada é estimada pela proporção de prédios atingidos; isso supõe distribuição "
             "uniforme de moradores, inclusive em prédios não residenciais. Inconsistências do JSON foram "
             "tratadas e documentadas no relatório de limpeza. O recorde de 5,35 m é uma referência de maio de 2024.")
     st.caption("Fonte dos indicadores e gráficos: JSON do INCT SiMAI fornecido pela disciplina, após limpeza local.")
+
+
+def numero(valor: float) -> str:
+    return f"{valor:,.0f}".replace(",", ".")
+
+
+def decimal(valor: float, casas: int) -> str:
+    return f"{valor:.{casas}f}".replace(".", ",")
+
+
+def tela_bairro(dados, nivel: float) -> None:
+    """Curva de um bairro escolhido, com o nível do controle e o recorde de 2024 marcados."""
+    nomes = sorted(dados["bairro"].unique())
+    no_recorde = dados[dados["nivel_m"].eq(5.4)].sort_values("affected_population")
+    padrao = nomes.index(no_recorde["bairro"].iloc[-1])  # o mais atingido no nível de 2024
+    bairro = st.selectbox("Bairro", nomes, index=padrao, key="bairro_inct")
+    serie = serie_bairro(dados, bairro)
+    atual = serie[serie["nivel_m"].eq(nivel)].iloc[0]
+
+    fig = go.Figure(go.Scatter(
+        x=serie["nivel_m"], y=serie["percentage"], mode="lines",
+        line={"color": AZUL, "width": 3}, fill="tozeroy", fillcolor="rgba(95,159,173,.18)",
+        customdata=serie["affected_population"],
+        hovertemplate="%{x:.1f} m: %{y:.2f}% dos prédios<br>%{customdata:,.0f} pessoas estimadas<extra></extra>",
+    ))
+    fig.add_vline(x=5.35, line_color=AMARELO, line_dash="dash")
+    fig.add_vline(x=nivel, line_color="#eef2f0", line_width=1)
+    estilo_grafico(fig, f"{bairro}: prédios afetados por nível", 380)
+    fig.update_xaxes(title="Nível do Guaíba (m)", range=[3, 10])
+    fig.update_yaxes(title="Prédios afetados (%)", range=[0, 100])
+    st.plotly_chart(fig, width="stretch", key="curva_bairro")
+
+    inicio = nivel_inicial(serie)
+    if inicio is None:
+        st.markdown(f"**{bairro}** não tem prédios atingidos na simulação, até 10,0 m.")
+        return
+    st.markdown(
+        f"**{bairro}** começa a ter prédios atingidos a **{decimal(inicio, 1)} m**. "
+        f"A {decimal(nivel, 1)} m: **{numero(atual['affected_population'])} pessoas** estimadas e "
+        f"**{decimal(atual['percentage'], 2)}%** dos prédios ({numero(atual['affected_buildings'])} de "
+        f"{numero(atual['total_buildings'])})."
+    )
 
 
 def tela_historico() -> None:

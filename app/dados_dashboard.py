@@ -37,6 +37,20 @@ def curva_inct(dados: pd.DataFrame) -> pd.DataFrame:
             .sum().sort_values("nivel_m"))
 
 
+def serie_bairro(dados: pd.DataFrame, bairro: str) -> pd.DataFrame:
+    """Uma linha por nível para o bairro escolhido, do menor para o maior nível."""
+    serie = dados[dados["bairro"].eq(bairro)].sort_values("nivel_m")
+    if len(serie) != 71:
+        raise ValueError(f"Dados incompletos do INCT para o bairro {bairro}.")
+    return serie
+
+
+def nivel_inicial(serie: pd.DataFrame) -> float | None:
+    """Primeiro nível com algum prédio atingido; None se o bairro não é atingido até 10 m."""
+    atingidos = serie.loc[serie["affected_buildings"].gt(0), "nivel_m"]
+    return None if atingidos.empty else float(atingidos.min())
+
+
 def carregar_ana() -> pd.DataFrame:
     dados = pd.read_csv(PROCESSADOS / "ana_diario.csv", parse_dates=["data"])
     dados["ano"] = dados["data"].dt.year
