@@ -117,7 +117,7 @@ const num = n => n.toLocaleString("pt-BR");
 const metros = cm => (cm / 100).toFixed(2).replace(".", ",");
 
 // Régua limnimétrica: a marcação em "E" das réguas reais do rio
-(function regua() {
+function regua() {
   const svg = $("regua-svg"), H = svg.clientHeight, W = svg.clientWidth;
   const y = m => H * (1 - (m - REGUA.min) / (REGUA.max - REGUA.min));
   let s = "";
@@ -130,7 +130,9 @@ const metros = cm => (cm / 100).toFixed(2).replace(".", ",");
   s += `<line x1="0" x2="${W}" y1="${y(3)}" y2="${y(3)}" stroke="#b3261e" stroke-width="2"/>`;
   s += `<line x1="0" x2="${W}" y1="${y(5.35)}" y2="${y(5.35)}" stroke="#b3261e" stroke-width="2" stroke-dasharray="4 3"/>`;
   svg.innerHTML = s;
-})();
+}
+// O iframe muda de altura depois do carregamento; sem redesenhar, as marcas ficam na escala antiga.
+new ResizeObserver(regua).observe($("regua"));
 
 // Hidrograma: é a própria linha do tempo
 const hidro = { x: i => 1000 * i / (S.length - 1), y: cm => 86 - 80 * (cm - 200) / 350 };
