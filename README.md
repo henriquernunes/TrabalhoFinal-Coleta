@@ -16,6 +16,7 @@ Os números de pessoas e prédios são **estimativas de simulação**, não prev
 |---|---|
 | Henrique Nunes | [@henriquernunes](https://github.com/henriquernunes) |
 | Jayme Fortes | [@JaymeFortes](https://github.com/JaymeFortes) |
+| Henzo G. de Vasconcellos | [@hgvh2](http://github.com/hgvh2) |
 
 ## Dashboard
 
