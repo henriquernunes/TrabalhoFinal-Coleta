@@ -1,35 +1,31 @@
-# Coleta dos dados — como rodar
+# Como rodar
 
-Scripts de coleta das bases escolhidas na Fase 1. Rodar sempre **a partir da raiz do repositório**.
+Rodar sempre **a partir da raiz do repositório**. Dashboard publicado: <https://guaiba-poa.streamlit.app/>
 
-## Dashboard em duas telas
+## Só abrir o dashboard
 
-```bash
-.venv/bin/streamlit run app/app.py
-```
-
-- **Simulação INCT:** abra `?tela=inct`. O controle de 3,0 a 10,0 m atualiza pessoas, prédios, bairros, gráfico por bairro, ranking e curva da população. Essa tela usa apenas `dados/processados/inct_longo_limpo.csv`, derivado do JSON do INCT.
-- **Enchente de 2024:** a página inicial mantém o mapa existente. O link **Histórico** abre o painel analítico da mesma tela, com três gráficos da ANA e filtro de anos. As estimativas de pessoas nesses gráficos vêm do INCT e são hipotéticas.
-
-Testes de regressão: `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'` e `node --test`.
-
-## 1. Preparar o ambiente
+Os dados processados já estão versionados em `dados/processados/` e `app/mapa.html`, então basta:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+streamlit run app/app.py
 ```
 
-## 2. Colocar o JSON do INCT
+O app abre em <http://localhost:8501>. Telas:
 
-Copie o arquivo fornecido pela disciplina para:
+- **Simulação INCT** (`?tela=inct`): o controle de 3,0 a 10,0 m atualiza pessoas, prédios e bairros atingidos, o mapa dos bairros colorido pela % de prédios afetados, o ranking, as barras por bairro e as curvas da população afetada (cidade toda e um bairro escolhido). Usa apenas `dados/processados/inct_longo_limpo.csv` e os limites de `dados/processados/bairros.geojson`.
+- **Enchente 2024** (`?tela=enchente`, página inicial): mapa da enchente de maio de 2024, hora a hora, com a mancha da Prefeitura, o nível da ANA e as estimativas do INCT.
+- **Histórico** (`?tela=enchente&painel=historico`): série diária da ANA desde 2014, com filtro de anos, dias acima da cota, picos anuais e a estimativa do INCT para cada pico (hipotética).
 
-```
-dados/originais/inct/dados.json
-```
+## Refazer tudo do zero
 
-## 3. Coletar tudo
+### 1. Colocar o JSON do INCT
+
+Copie o arquivo fornecido pela disciplina para `dados/originais/inct/dados.json`.
+
+### 2. Coletar
 
 ```bash
 python scripts/coletar_tudo.py
@@ -39,17 +35,28 @@ Ou cada base separadamente:
 
 | Script | Base | Como coleta | Saída |
 |---|---|---|---|
-| `scripts/coleta_ana.py` | Nível do Guaíba — ANA (Cais Mauá 87450004 e Usina do Gasômetro 87444000) | API (web service público, XML) | `dados/originais/ana/` |
-| `scripts/coleta_prefeitura.py` | Mancha por cota, limites dos bairros e eventos — GIS da Prefeitura de Porto Alegre (SMAMUS/DMAE) | ArcGIS FeatureServer público | `dados/originais/prefeitura/` |
+| `scripts/coleta_ana.py` | Nível do Guaíba — ANA (Cais Mauá 87450004 e Usina do Gasômetro 87444000) | Web service público (XML) | `dados/originais/ana/` |
+| `scripts/coleta_prefeitura.py` | Mancha por cota, bairros, eventos de 2024 e escolas (INEP) — GIS da Prefeitura (SMAMUS/DMAE) | ArcGIS FeatureServer público | `dados/originais/prefeitura/` |
 | `scripts/carrega_inct.py` | Simulação do INCT SiMAI | Leitura do JSON + diagnóstico | `dados/processados/inct_longo_bruto.csv` |
 
 Os scripts **não baixam de novo** o que já existe em `dados/originais/` (coleta responsável).
-A coleta da Prefeitura também baixa a camada pública de escolas georreferenciadas da Prefeitura, derivada do cadastro INEP.
 
-Depois de baixar as escolas, atualize os números por bairro e cota sem refazer os contornos grandes:
+### 3. Limpar e processar
 
 ```bash
-python scripts/gera_mapa.py --schools-only
+python scripts/limpa_inct.py       # dados/processados/inct_longo_limpo.csv
+python scripts/processa_ana.py     # dados/processados/ana_diario.csv e enchente_2024_horario.csv
+python scripts/gera_mapa.py        # dados/processados/mapa_dados.json e app/mapa.html
+python scripts/extrai_bairros.py   # dados/processados/bairros.geojson (mapa da Tela 1)
+```
+
+Para atualizar só a contagem de escolas por bairro e cota, sem refazer os contornos grandes: `python scripts/gera_mapa.py --schools-only`.
+
+### 4. Testes
+
+```bash
+python -m unittest discover -s tests -p 'test_*.py'
+node --test tests/mapa.test.cjs
 ```
 
 ## Fontes usadas no mapa interativo
@@ -58,10 +65,10 @@ O mapa usa a série horária processada da ANA para avançar a linha do tempo. A
 
 As camadas da Prefeitura são polígonos por cota. Assim, a aparência da água no mapa não calcula a passagem entre cada prédio, nem modela o efeito de diques, comportas ou água retida durante a descida. O número de escolas no hover é contado ao cruzar os pontos da camada [Escolas_INEP_SCRPOA](https://gis-smamus.portoalegre.rs.gov.br/server/rest/services/Hosted/Escolas_INEP_SCRPOA/FeatureServer/0) com os bairros oficiais e com a mancha exibida em cada cota. É uma estimativa de **escolas dentro da área simulada**, não uma lista de escolas que sofreram danos reais em 2024. A data da coleta fica em `dados/originais/prefeitura/escolas_meta.json` e no rodapé do mapa.
 
-## O que já sabemos sobre os dados da ANA
+## O que sabemos sobre os dados da ANA
 
 - A estação **Cais Mauá C6 (87450004)** não tem série convencional no HidroWeb (o .zip vem vazio); só **telemetria**, desde 2014, com leituras a cada 15 min.
 - Ela **parou em 02/05/2024 às 23h15, com 3,69 m**, durante a enchente.
 - A estação **Usina do Gasômetro (87444000)** começa em **03/05/2024 às 15h** e registra o pico de **5,35 m em 05/05/2024 às 5h30**.
-- Entre as duas há um **buraco de ~16 h**, e os **referenciais são diferentes** (nota ANA/SGB: correção de 1,18 m, ainda **não aplicada** nos dados servidos). Cota de inundação: 3,00 m no Cais Mauá, 3,60 m no Gasômetro.
-- Esses pontos vão para o relatório de limpeza (Fase 2).
+- Entre as duas há uma **lacuna de cerca de 18 h** (interpolada na série processada), e os **referenciais são diferentes** (nota ANA/SGB: correção de 1,18 m, **não aplicada**). Cota de inundação: 3,00 m no Cais Mauá, 3,60 m no Gasômetro.
+- O tratamento de cada ponto está em `relatorios/limpeza_dados.pdf`.
