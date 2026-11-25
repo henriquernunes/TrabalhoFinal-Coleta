@@ -38,7 +38,7 @@ button[aria-pressed="true"] { background: var(--texto); color: var(--rio); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--agora); outline-offset: 2px; }
 
 #tempo { position: absolute; left: 0; right: 0; bottom: 0; min-height: 150px; padding: 10px 16px 6px; background: var(--rio); display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
-#tocar { height: 46px; align-self: start; font-size: 15px; background: var(--agora); color: var(--rio); border: 0; font-weight: 500; }
+#tocar { height: 46px; align-self: center; font-size: 15px; background: var(--agora); color: var(--rio); border: 0; font-weight: 500; }
 #hidro { position: relative; height: 92px; }
 #hidro svg { width: 100%; height: 100%; display: block; }
 #hora { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
@@ -230,7 +230,7 @@ $("tocar").addEventListener("click", () => {
   if (timer) return parar();
   if (hora >= S.length - 1) aplica(0);
   $("tocar").textContent = "Pausar";
-  timer = setInterval(() => hora >= S.length - 1 ? parar() : aplica(hora + 1), 130);
+  timer = setInterval(() => hora >= S.length - 1 ? parar() : aplica(hora + 1), 250);
 });
 
 $("b3d").addEventListener("click", e => {
