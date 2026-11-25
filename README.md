@@ -76,9 +76,9 @@ Mais detalhes sobre cada script e sobre as fontes do mapa estão em [`COMO_RODAR
 ## Relatórios
 
 - `relatorios/base_dados.pdf` — levantamento das bases (Fase 1).
-- `relatorios/limpeza_dados.pdf` — limpeza dos dados (fonte LaTeX em `relatorios/limpeza_dados.tex`).
+- `relatorios/limpeza_dados.pdf` — limpeza dos dados.
 - `relatorios/wireframe.png` — esboço das três telas (Fase 2).
-- `relatorios/dashboard.pdf` — objetivo de cada tela, visualizações, como usar e limitações (fonte LaTeX em `relatorios/dashboard.tex`).
+- `relatorios/dashboard.pdf` — objetivo de cada tela, visualizações, como usar e limitações.
 
 ## Uso de IA
 
